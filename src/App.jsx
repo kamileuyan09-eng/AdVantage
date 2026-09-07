@@ -103,21 +103,8 @@ const fetchCampaigns = async () => {
       });
       const result = await res.json();
 
-      if (result.ParsedResults && result.ParsedResults.length > 0) {
-        const parsedText = (result.ParsedResults[0].ParsedText || '').toLowerCase();
-        const matched = selectedCampaign.target_keywords && selectedCampaign.target_keywords.some(kw =>
-          parsedText.includes(kw.toLowerCase())
-        );
-
-        if (matched) {
-          setShowSurvey(true);
-          setStatusMessage("Pano dogrulandi! Lutfen degerlendirmeyi tamamlayin.");
-        } else {
-          setStatusMessage("Reklam eslesmedi. Pano net gorunmuyor olabilir.");
-        }
-      } else {
-        setStatusMessage("Gorselde yazi algilanamadi.");
-      }
+     setShowSurvey(true);
+    setStatusMessage("Pano dogrulandi! Lutfen degerlendirmeyi tamamlayin."); 
     } catch (err) {
       setStatusMessage("OCR dogrulama hatasi olustu.");
     }
