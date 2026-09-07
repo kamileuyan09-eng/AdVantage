@@ -160,7 +160,7 @@ export default function App() {
     setTimeout(() => {
       setShowCoins(false);
       setShowSurvey(false);
-      setStatusMessage(Tebrikler! Görüşleriniz kaydedildi ve +${earned} puan cüzdanınıza eklendi! 🎉);
+      setStatusMessage("Tebrikler! Gorusleriniz kaydedildi ve puaniniz yuklendi!");
       setLoading(false);
       setOpenFeedback('');
     }, 1300);
