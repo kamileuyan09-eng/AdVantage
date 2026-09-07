@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from 'react';
 
+// Supabase Bağlantı Bilgileri
+const SUPABASE_URL = 'https://nlsmotipvjkfwewharut.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_YFnvR0ZVP9JOG7-Di6e66Q_46a_f4PC';
+
 const CAMPAIGNS = [
   {
     id: 1,
@@ -61,15 +65,19 @@ export default function App() {
   const [isRegisterMode, setIsRegisterMode] = useState(false);
 
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState('campaigns');
+  const [activeTab, setActiveTab] = useState('campaigns'); // 'campaigns' | 'rewards' | 'admin'
 
-  // Görev ekranı kontrolü (Ayrı sayfa modu)
+  // Buluttan çekilen yönetici verileri
+  const [adminSurveys, setAdminSurveys] = useState([]);
+  const [selectedBrandFilter, setSelectedBrandFilter] = useState('Tümü');
+
+  // Görev ekranı
   const [activeTaskCampaign, setActiveTaskCampaign] = useState(null);
   const [showSurvey, setShowSurvey] = useState(false);
   const [statusMessage, setStatusMessage] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Altın para ve puan animasyonu
+  // Animasyon state'leri
   const [showCoins, setShowCoins] = useState(false);
   const [coinBounce, setCoinBounce] = useState(false);
 
@@ -86,6 +94,27 @@ export default function App() {
       localStorage.setItem('ad_user', JSON.stringify(currentUser));
     }
   }, [currentUser]);
+
+  // Admin sekmesi açıldığında Supabase'den verileri getir
+  const fetchSurveysFromCloud = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch(SUPABASE_URL + '/rest/v1/surveys?select=*&order=created_at.desc', {
+        headers: {
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
+        }
+      });
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        setAdminSurveys(data);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleAuth = (e) => {
     e.preventDefault();
@@ -118,7 +147,6 @@ export default function App() {
     setCurrentUser(prev => ({ ...prev, avatar: av }));
   };
 
-  // Kameradan fotoğraf çekildiğinde anket adımına geç
   const handleImageCapture = (e) => {
     if (!e.target.files || e.target.files.length === 0) return;
     setLoading(true);
@@ -127,21 +155,50 @@ export default function App() {
     setTimeout(() => {
       setLoading(false);
       setShowSurvey(true);
-      setStatusMessage('Pano başarıyla doğrulandı! Lütfen 6 soruluk etki anketini tamamlayın.');
+      setStatusMessage('Pano doğrulandı! Lütfen 6 soruluk etki anketini yanıtlayın.');
     }, 900);
   };
 
-  // Anketi tamamlama ve puan artışı
-  const handleSurveySubmit = (e) => {
+  // Anketi Supabase Bulut Veritabanına Kaydetme
+  const handleSurveySubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
 
     const earned = activeTaskCampaign ? activeTaskCampaign.reward_points : 50;
 
-    // Altın para uçuşunu başlat
+    const payload = {
+      user_name: currentUser.name,
+      user_email: currentUser.email,
+      brand_name: activeTaskCampaign.brand_name,
+      campaign_title: activeTaskCampaign.title,
+      reward_points: earned,
+      q1_attention: q1,
+      q2_clarity: q2,
+      q3_design: q3,
+      q4_purchase_intent: q4,
+      q5_condition: q5,
+      open_feedback: openFeedback.trim() || 'Görüş belirtilmedi.'
+    };
+
+    try {
+      // Supabase REST API'sine kayıt gönderimi
+      await fetch(SUPABASE_URL + '/rest/v1/surveys', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+          'Prefer': 'return=minimal'
+        },
+        body: JSON.stringify(payload)
+      });
+    } catch (err) {
+      console.error('Bulut kayıt hatası:', err);
+    }
+
+    // Puan animasyonu ve cüzdan güncellemesi
     setShowCoins(true);
 
-    // Paralar cüzdana vardığında puanı artır ve rozeti zıplat
     setTimeout(() => {
       setCoinBounce(true);
       setCurrentUser(prev => ({
@@ -151,17 +208,17 @@ export default function App() {
       setTimeout(() => setCoinBounce(false), 500);
     }, 850);
 
-    // Başarıyla ana sayfaya dön
     setTimeout(() => {
       setShowCoins(false);
       setShowSurvey(false);
       setActiveTaskCampaign(null);
       setLoading(false);
       setOpenFeedback('');
-      setStatusMessage('Tebrikler! Görev tamamlandı, +' + earned + ' puan hesabınıza eklendi!');
+      setStatusMessage('Tebrikler! Yanıtlarınız buluta kaydedildi ve +' + earned + ' puan eklendi!');
     }, 1400);
   };
 
+  // Giriş Ekranı
   if (!currentUser) {
     return (
       <div style={{ minHeight: '100vh', backgroundColor: '#091024', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
@@ -210,7 +267,7 @@ export default function App() {
               type="submit"
               style={{ backgroundColor: '#0284c7', color: '#fff', border: 'none', padding: '14px', borderRadius: '12px', fontWeight: 'bold', fontSize: '15px', cursor: 'pointer', marginTop: '6px' }}
             >
-              {isRegisterMode ? 'Kayıt Ol ve Kazanmaya Başla' : 'Giriş Yap'}
+              {isRegisterMode ? 'Kayıt Ol ve Başla' : 'Giriş Yap'}
             </button>
           </form>
 
@@ -227,24 +284,19 @@ export default function App() {
     );
   }
 
+  const filteredSurveys = selectedBrandFilter === 'Tümü'
+    ? adminSurveys
+    : adminSurveys.filter(s => s.brand_name === selectedBrandFilter);
+
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#091024', color: '#f8fafc', fontFamily: 'system-ui, -apple-system, sans-serif', paddingBottom: '70px', position: 'relative', overflowX: 'hidden' }}>
       
-      {/* Para ve Cüzdan Animasyonları */}
+      {/* Animasyon CSS */}
       <style>{`
         @keyframes flyToWallet {
-          0% {
-            transform: translate(0, 0) scale(1.3) rotate(0deg);
-            opacity: 1;
-          }
-          40% {
-            transform: translate(calc(var(--rand-x) * 1px), -100px) scale(1.6) rotate(180deg);
-            opacity: 1;
-          }
-          100% {
-            transform: translate(calc(110px + var(--rand-offset) * 1px), -460px) scale(0.3) rotate(360deg);
-            opacity: 0;
-          }
+          0% { transform: translate(0, 0) scale(1.3) rotate(0deg); opacity: 1; }
+          40% { transform: translate(calc(var(--rand-x) * 1px), -100px) scale(1.6) rotate(180deg); opacity: 1; }
+          100% { transform: translate(calc(110px + var(--rand-offset) * 1px), -460px) scale(0.3) rotate(360deg); opacity: 0; }
         }
         @keyframes walletBounce {
           0% { transform: scale(1); }
@@ -265,7 +317,6 @@ export default function App() {
         }
       `}</style>
 
-      {/* Uçuşan Altın Paralar */}
       {showCoins && (
         <>
           <div className="coin-particle" style={{ '--rand-x': '-70', '--rand-offset': '10', animationDelay: '0ms' }}>🪙</div>
@@ -293,7 +344,6 @@ export default function App() {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          {/* Canlı Puan Cüzdanı */}
           <div
             className={coinBounce ? 'wallet-bump' : ''}
             style={{
@@ -340,7 +390,7 @@ export default function App() {
               <div style={{ textAlign: 'center', padding: '18px', backgroundColor: '#f8fafc', borderRadius: '18px', border: '1px solid #e2e8f0', marginBottom: '20px' }}>
                 <div style={{ fontSize: '56px', marginBottom: '6px' }}>{currentUser.avatar}</div>
                 <div style={{ fontWeight: 'bold', fontSize: '17px', color: '#0f172a' }}>{currentUser.name}</div>
-                <div style={{ fontSize: '12px', color: '#64748b' }}>{currentUser.email}</div>
+                <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>{currentUser.email}</div>
                 <div style={{ marginTop: '12px', display: 'inline-block', backgroundColor: '#0284c7', color: '#fff', padding: '5px 14px', borderRadius: '14px', fontSize: '13px', fontWeight: 'bold' }}>
                   Toplam: {currentUser.points} Puan
                 </div>
@@ -374,6 +424,16 @@ export default function App() {
                 >
                   🎁 Ödül Mağazası & Kuponlar
                 </button>
+                <button
+                  onClick={() => { 
+                    setActiveTab('admin'); 
+                    setIsDrawerOpen(false); 
+                    fetchSurveysFromCloud(); 
+                  }}
+                  style={{ textAlign: 'left', padding: '12px 16px', borderRadius: '12px', border: 'none', backgroundColor: activeTab === 'admin' ? '#fef3c7' : '#f8fafc', color: activeTab === 'admin' ? '#b45309' : '#334155', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer' }}
+                >
+                  📊 Marka & Yönetici Paneli
+                </button>
               </div>
             </div>
 
@@ -387,19 +447,18 @@ export default function App() {
         </div>
       )}
 
-      {/* Ayrı Sayfa / Modal Olarak Açılan Görev Ekranı */}
+      {/* Ayrı Sayfa / Modal Görev Ekranı */}
       {activeTaskCampaign && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 60, backgroundColor: '#091024', overflowY: 'auto', padding: '20px 16px 60px 16px' }}>
           <div style={{ maxWidth: '520px', margin: '0 auto' }}>
             
-            {/* Geri Dön Butonu ve Başlık */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
               <button
                 onClick={() => {
                   setActiveTaskCampaign(null);
                   setShowSurvey(false);
                 }}
-                style={{ background: '#1e293b', border: '1px solid #334155', color: '#38bdf8', padding: '8px 16px', borderRadius: '10px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px' }}
+                style={{ background: '#1e293b', border: '1px solid #334155', color: '#38bdf8', padding: '8px 16px', borderRadius: '10px', cursor: 'pointer', fontWeight: 'bold' }}
               >
                 ← Listeye Dön
               </button>
@@ -408,7 +467,6 @@ export default function App() {
               </div>
             </div>
 
-            {/* Görev Başlık Kartı */}
             <div style={{ backgroundColor: '#ffffff', color: '#0f172a', padding: '20px', borderRadius: '20px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '16px', boxShadow: '0 6px 20px rgba(0,0,0,0.3)' }}>
               <div style={{ fontSize: '38px', backgroundColor: '#f1f5f9', width: '64px', height: '64px', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 {activeTaskCampaign.banner}
@@ -419,7 +477,6 @@ export default function App() {
               </div>
             </div>
 
-            {/* Aşama 1: Fotoğraf Çekme Sayfası */}
             {!showSurvey && (
               <div style={{ backgroundColor: '#1e293b', padding: '36px 20px', borderRadius: '24px', textAlign: 'center', border: '2px dashed #38bdf8', boxShadow: '0 10px 30px rgba(0,0,0,0.3)' }}>
                 <div style={{ fontSize: '50px', marginBottom: '12px' }}>📸</div>
@@ -427,7 +484,7 @@ export default function App() {
                   {activeTaskCampaign.brand_name} Panosunu Fotoğraflayın
                 </h3>
                 <p style={{ fontSize: '13px', color: '#94a3b8', margin: '0 auto 24px auto', maxWidth: '320px', lineHeight: '1.5' }}>
-                  Doğrulama için lütfen açık hava reklam panosunun fotoğrafını çekin. Fotoğraf hemen onaylanıp değerlendirme anketini açacaktır.
+                  Fotoğrafı çekip doğrulamayı tamamladığınızda tüketici etki anketi açılacaktır.
                 </p>
 
                 <label style={{ display: 'inline-block', backgroundColor: '#0284c7', color: '#fff', padding: '16px 36px', borderRadius: '14px', fontWeight: 'bold', cursor: 'pointer', fontSize: '16px', boxShadow: '0 6px 18px rgba(2,132,199,0.4)' }}>
@@ -443,13 +500,12 @@ export default function App() {
               </div>
             )}
 
-            {/* Aşama 2: 6 Soruluk Reklam Etki Anketi */}
             {showSurvey && (
               <form onSubmit={handleSurveySubmit} style={{ backgroundColor: '#ffffff', color: '#0f172a', padding: '24px', borderRadius: '24px', boxShadow: '0 12px 35px rgba(0,0,0,0.4)' }}>
                 <div style={{ borderBottom: '2px solid #f1f5f9', paddingBottom: '12px', marginBottom: '18px' }}>
-                  <span style={{ fontSize: '11px', color: '#0284c7', fontWeight: 'bold', textTransform: 'uppercase' }}>Saha Ölçümleme & Etki Analizi</span>
+                  <span style={{ fontSize: '11px', color: '#0284c7', fontWeight: 'bold', textTransform: 'uppercase' }}>Bulut Tabanlı Saha Ölçümleme</span>
                   <h3 style={{ margin: '4px 0 0 0', fontSize: '18px', color: '#0f172a' }}>
-                    {activeTaskCampaign.brand_name} Değerlendirme Anketi
+                    {activeTaskCampaign.brand_name} Reklam Değerlendirmesi
                   </h3>
                 </div>
 
@@ -489,7 +545,7 @@ export default function App() {
 
                 <div style={{ marginBottom: '16px' }}>
                   <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#334155', display: 'block', marginBottom: '6px' }}>
-                    4. Bu reklamı görmek, söz konusu markadan alışveriş yapma / ürünü deneme isteğinizi etkiledi mi?
+                    4. Bu reklamı görmek markadan alışveriş yapma isteğinizi etkiledi mi?
                   </label>
                   <select value={q4} onChange={(e) => setQ4(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '13px' }}>
                     <option>Evet, Kesinlikle Satın Alma İsteği Uyandırdı</option>
@@ -506,7 +562,7 @@ export default function App() {
                   <select value={q5} onChange={(e) => setQ5(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '13px' }}>
                     <option>Kusursuz / Çok Net Görünüyor</option>
                     <option>Aydınlatma Yetersiz / Soluk</option>
-                    <option>Önünde Engel Var (Ağaç, direk, bina vb.)</option>
+                    <option>Önünde Engel Var (Ağaç, direk vb.)</option>
                     <option>Fiziksel Olarak Hasarlı / Yırtık</option>
                   </select>
                 </div>
@@ -517,7 +573,7 @@ export default function App() {
                   </label>
                   <textarea
                     rows={3}
-                    placeholder="Reklam hakkındaki kendi görüş ve önerilerinizi buraya yazabilirsiniz..."
+                    placeholder="Kişisel düşüncelerinizi, eleştiri ve önerilerinizi yazın..."
                     value={openFeedback}
                     onChange={(e) => setOpenFeedback(e.target.value)}
                     style={{ width: '100%', padding: '10px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '13px', boxSizing: 'border-box', fontFamily: 'inherit' }}
@@ -529,16 +585,15 @@ export default function App() {
                   disabled={loading}
                   style={{ width: '100%', backgroundColor: '#0284c7', color: '#fff', border: 'none', padding: '14px', borderRadius: '12px', fontWeight: 'bold', fontSize: '15px', cursor: 'pointer', boxShadow: '0 4px 14px rgba(2,132,199,0.4)' }}
                 >
-                  {loading ? 'Kaydediliyor...' : ('Değerlendirmeyi Tamamla (+' + activeTaskCampaign.reward_points + ' Puan)')}
+                  {loading ? 'Buluta Kaydediliyor...' : ('Değerlendirmeyi Tamamla (+' + activeTaskCampaign.reward_points + ' Puan)')}
                 </button>
               </form>
             )}
-
           </div>
         </div>
       )}
 
-      {/* Ana Liste Ekranı */}
+      {/* Ana Ekran */}
       <main style={{ maxWidth: '520px', margin: '0 auto', padding: '20px 16px' }}>
 
         {statusMessage && (
@@ -547,31 +602,7 @@ export default function App() {
           </div>
         )}
 
-        {/* Ödüller Sekmesi */}
-        {activeTab === 'rewards' && (
-          <div>
-            <h2 style={{ fontSize: '19px', marginBottom: '14px', color: '#38bdf8' }}>Kullanılabilir Ödüller</h2>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <div style={{ backgroundColor: '#ffffff', color: '#0f172a', padding: '18px', borderRadius: '18px', boxShadow: '0 4px 14px rgba(0,0,0,0.1)' }}>
-                <div style={{ fontWeight: 'bold', fontSize: '16px' }}>50 TL Kahve Çeki</div>
-                <div style={{ fontSize: '12px', color: '#64748b', margin: '4px 0 12px 0' }}>Kurukahveci Mehmet Efendi ve tüm kahvecilerde geçerlidir.</div>
-                <button disabled={currentUser.points < 150} style={{ backgroundColor: currentUser.points >= 150 ? '#0284c7' : '#cbd5e1', color: '#fff', border: 'none', padding: '10px 18px', borderRadius: '10px', fontWeight: 'bold', cursor: currentUser.points >= 150 ? 'pointer' : 'not-allowed' }}>
-                  150 Puan
-                </button>
-              </div>
-
-              <div style={{ backgroundColor: '#ffffff', color: '#0f172a', padding: '18px', borderRadius: '18px', boxShadow: '0 4px 14px rgba(0,0,0,0.1)' }}>
-                <div style={{ fontWeight: 'bold', fontSize: '16px' }}>Koton %20 İndirim Kuponu</div>
-                <div style={{ fontSize: '12px', color: '#64748b', margin: '4px 0 12px 0' }}>Tüm yeni sezon mağaza ve online alışverişlerde geçerlidir.</div>
-                <button disabled={currentUser.points < 250} style={{ backgroundColor: currentUser.points >= 250 ? '#0284c7' : '#cbd5e1', color: '#fff', border: 'none', padding: '10px 18px', borderRadius: '10px', fontWeight: 'bold', cursor: currentUser.points >= 250 ? 'pointer' : 'not-allowed' }}>
-                  250 Puan
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Kampanyalar Sekmesi */}
+        {/* 1. SEKME: Kampanyalar Listesi */}
         {activeTab === 'campaigns' && (
           <div>
             <div style={{ marginBottom: '18px' }}>
@@ -616,6 +647,104 @@ export default function App() {
             </div>
           </div>
         )}
+
+        {/* 2. SEKME: Ödüller */}
+        {activeTab === 'rewards' && (
+          <div>
+            <h2 style={{ fontSize: '19px', marginBottom: '14px', color: '#38bdf8' }}>Kullanılabilir Ödüller</h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{ backgroundColor: '#ffffff', color: '#0f172a', padding: '18px', borderRadius: '18px' }}>
+                <div style={{ fontWeight: 'bold', fontSize: '16px' }}>50 TL Kahve Çeki</div>
+                <div style={{ fontSize: '12px', color: '#64748b', margin: '4px 0 12px 0' }}>Tüm kahvecilerde geçerlidir.</div>
+                <button disabled={currentUser.points < 150} style={{ backgroundColor: currentUser.points >= 150 ? '#0284c7' : '#cbd5e1', color: '#fff', border: 'none', padding: '10px 18px', borderRadius: '10px', fontWeight: 'bold' }}>
+                  150 Puan
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 3. SEKME: Marka & Yönetici Paneli (Supabase Verileri) */}
+        {activeTab === 'admin' && (
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <div>
+                <h2 style={{ fontSize: '19px', margin: 0, color: '#f8fafc', fontWeight: '800' }}>Marka & Rapor Paneli</h2>
+                <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '2px' }}>Bulut Veritabanındaki Canlı Saha Yanıtları</div>
+              </div>
+              <button
+                onClick={fetchSurveysFromCloud}
+                style={{ backgroundColor: '#0284c7', color: '#fff', border: 'none', padding: '8px 14px', borderRadius: '10px', fontWeight: 'bold', fontSize: '12px', cursor: 'pointer' }}
+              >
+                🔄 Yenile
+              </button>
+            </div>
+
+            {/* Marka Filtresi */}
+            <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '10px', marginBottom: '16px' }}>
+              {['Tümü', 'Koton', 'Kurukahveci Mehmet Efendi', 'Getir', 'Trendyol', 'Apple'].map(brand => (
+                <button
+                  key={brand}
+                  onClick={() => setSelectedBrandFilter(brand)}
+                  style={{
+                    padding: '6px 14px',
+                    borderRadius: '20px',
+                    border: 'none',
+                    fontSize: '12px',
+                    fontWeight: 'bold',
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                    backgroundColor: selectedBrandFilter === brand ? '#38bdf8' : '#1e293b',
+                    color: selectedBrandFilter === brand ? '#0f172a' : '#cbd5e1'
+                  }}
+                >
+                  {brand}
+                </button>
+              ))}
+            </div>
+
+            {/* Yanıtlar Listesi */}
+            {loading ? (
+              <div style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>Veriler buluttan yükleniyor...</div>
+            ) : filteredSurveys.length === 0 ? (
+              <div style={{ backgroundColor: '#1e293b', padding: '30px', borderRadius: '16px', textAlign: 'center', color: '#94a3b8', fontSize: '13px' }}>
+                Henüz bu markaya ait bir anket yanıtı girilmedi. Sahadan anket doldurulduğunda buraya anında yansıyacaktır.
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                {filteredSurveys.map(s => (
+                  <div key={s.id} style={{ backgroundColor: '#ffffff', color: '#0f172a', padding: '16px', borderRadius: '16px', boxShadow: '0 4px 14px rgba(0,0,0,0.15)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px', marginBottom: '10px' }}>
+                      <div>
+                        <span style={{ fontWeight: 'bold', color: '#0284c7', fontSize: '14px' }}>{s.brand_name}</span>
+                        <div style={{ fontSize: '11px', color: '#64748b' }}>Kullanıcı: {s.user_name} ({s.user_email})</div>
+                      </div>
+                      <div style={{ fontSize: '11px', color: '#94a3b8' }}>
+                        {new Date(s.created_at).toLocaleDateString('tr-TR')}
+                      </div>
+                    </div>
+
+                    <div style={{ fontSize: '12px', display: 'grid', gridTemplateColumns: '1fr', gap: '4px', color: '#334155' }}>
+                      <div><strong>Dikkat:</strong> {s.q1_attention}</div>
+                      <div><strong>Mesaj Netliği:</strong> {s.q2_clarity}</div>
+                      <div><strong>Tasarım:</strong> {s.q3_design}</div>
+                      <div><strong>Satın Alma Eğilimi:</strong> {s.q4_purchase_intent}</div>
+                      <div><strong>Pano Durumu:</strong> {s.q5_condition}</div>
+                    </div>
+
+                    <div style={{ marginTop: '10px', backgroundColor: '#f8fafc', padding: '10px', borderRadius: '10px', borderLeft: '3px solid #0284c7' }}>
+                      <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#475569' }}>Kullanıcı Yorumu:</div>
+                      <div style={{ fontSize: '12px', color: '#0f172a', fontStyle: 'italic', marginTop: '2px' }}>
+                        "{s.open_feedback}"
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
       </main>
     </div>
   );
