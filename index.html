@@ -1,6 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
+    <script>
+  window.onerror = function(msg, url, line) {
+    document.body.innerHTML = '<div style="background:#fee2e2;color:#991b1b;padding:20px;font-family:sans-serif;font-size:16px;"><b>Hata:</b> ' + msg + '<br><br><b>Dosya:</b> ' + url + '<br><b>Satır:</b> ' + line + '</div>';
+  };
+</script>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>AdVantage</title>
