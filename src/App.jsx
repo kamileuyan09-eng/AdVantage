@@ -594,7 +594,7 @@ export default function App() {
                   disabled={loading}
                   style={{ width: '100%', backgroundColor: '#0284c7', color: '#fff', border: 'none', padding: '14px', borderRadius: '12px', fontWeight: 'bold', fontSize: '15px', cursor: 'pointer', boxShadow: '0 4px 14px rgba(2,132,199,0.4)' }}
                 >
-                  {loading ? 'Kaydediliyor...' : Değerlendirmeyi Tamamla (+${selectedCampaign.reward_points} Puan)}
+                  {loading ? 'Kaydediliyor...' : ('Degerlendirmeyi Tamamla (+' + selectedCampaign.reward_points + ' Puan)')}
                 </button>
               </form>
             )}
