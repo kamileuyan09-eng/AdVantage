@@ -166,7 +166,7 @@ export default function App() {
       </header>
 
       <main style={{ maxWidth: "480px", margin: "16px auto", display: "flex", flexDirection: "column", gap: "16px" }}>
-        {user && (
+        {true && (
           <div style={{ display: "flex", gap: "8px", background: "#1e293b", padding: "4px", borderRadius: "12px" }}>
             <button
               onClick={() => setActiveTab("scan")}
@@ -201,7 +201,7 @@ export default function App() {
           </div>
         )}
 
-        {user && activeTab === "scan" && (
+        {activeTab === "scan" && (
           <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
             <div style={{ background: "#1e293b", padding: "12px 16px", borderRadius: "12px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <span style={{ fontSize: "13px", color: "#94a3b8" }}>{locText}</span>
