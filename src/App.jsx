@@ -44,11 +44,16 @@ export default function App() {
     getUserLocation();
   }, []);
 
-  const fetchCampaigns = async () => {
-    const { data, error } = await supabase.from('campaigns').select('*');
-    if (!error && data) setCampaigns(data);
+const fetchCampaigns = async () => {
+    setCampaigns([
+      {
+        id: 1,
+        title: 'Kurukahveci Mehmet Efendi',
+        reward_points: 50,
+        target_keywords: ['kurukahveci', 'mehmet', 'efendi', 'kahve', '1871', 'turk']
+      }
+    ]);
   };
-
   const fetchProfile = async (userId) => {
     const { data, error } = await supabase.from('profiles').select('points').eq('id', userId).single();
     if (!error && data) setPoints(data.points || 0);
@@ -252,37 +257,52 @@ export default function App() {
             )}
 
             {showSurvey && (
-              <div style={{ background: "#1e293b", padding: "20px", borderRadius: "16px", display: "flex", flexDirection: "column", gap: "14px", border: "1px solid #10b981" }}>
-                <h4 style={{ margin: 0, color: "#10b981", fontSize: "16px" }}>Pano Dogrulandi! Hizli Geri Bildirim:</h4>
-                <div>
-                  <label style={{ fontSize: "13px", color: "#cbd5e1", display: "block", marginBottom: "6px" }}>1. Tasarim dikkatinizi cekti mi? (1-5):</label>
-                  <input type="range" min="1" max="5" value={q1Score} onChange={(e) => setQ1Score(Number(e.target.value))} style={{ width: "100%" }} />
-                  <span style={{ fontSize: "12px", color: "#38bdf8", fontWeight: "bold" }}>Skor: {q1Score} / 5</span>
-                </div>
-                <div>
-                  <label style={{ fontSize: "13px", color: "#cbd5e1", display: "block", marginBottom: "6px" }}>2. Satin alma istegi uyandirdi mi? (1-5):</label>
-                  <input type="range" min="1" max="5" value={q2Score} onChange={(e) => setQ2Score(Number(e.target.value))} style={{ width: "100%" }} />
-                  <span style={{ fontSize: "12px", color: "#38bdf8", fontWeight: "bold" }}>Skor: {q2Score} / 5</span>
-                </div>
-                <div>
-                  <label style={{ fontSize: "13px", color: "#cbd5e1", display: "block", marginBottom: "6px" }}>Notunuz (Opsiyonel):</label>
-                  <input
-                    type="text"
-                    placeholder="Kisa gorusunuz..."
-                    value={feedback}
-                    onChange={(e) => setFeedback(e.target.value)}
-                    style={{ width: "100%", boxSizing: "border-box", padding: "10px", borderRadius: "8px", border: "1px solid #475569", background: "#0f172a", color: "#fff", fontSize: "13px" }}
-                  />
-                </div>
-                <button
-                  onClick={submitSurvey}
-                  disabled={loading}
-                  style={{ background: "#10b981", color: "#fff", border: "none", padding: "14px", borderRadius: "10px", fontWeight: "bold", cursor: "pointer" }}
-                >
-                  {loading ? "Kaydediliyor..." : "Gonder ve Puani Al"}
-                </button>
-              </div>
-            )}
+  <div style={{ background: '#1e293b', padding: '16px', borderRadius: '12px', marginTop: '16px' }}>
+    <h3 style={{ color: '#38bdf8', fontSize: '15px', marginTop: 0, marginBottom: '12px' }}>
+      Pano Doğrulandı! Saha Değerlendirmesi
+    </h3>
+
+    <div style={{ marginBottom: '12px' }}>
+      <label style={{ color: '#cbd5e1', fontSize: '12px', display: 'block', marginBottom: '4px' }}>
+        1. Reklam panosu / afiş fiziksel olarak hasarlı mı?
+      </label>
+      <select style={{ width: '100%', padding: '8px', borderRadius: '6px', background: '#0f172a', color: '#fff', border: '1px solid #334155' }}>
+        <option>Sorunsuz / Temiz</option>
+        <option>Hafif yırtık / Çizik</option>
+        <option>Ağır hasarlı / Okunmuyor</option>
+      </select>
+    </div>
+
+    <div style={{ marginBottom: '12px' }}>
+      <label style={{ color: '#cbd5e1', fontSize: '12px', display: 'block', marginBottom: '4px' }}>
+        2. Reklamın görünürlüğü ve ışıklandırması yeterli mi?
+      </label>
+      <select style={{ width: '100%', padding: '8px', borderRadius: '6px', background: '#0f172a', color: '#fff', border: '1px solid #334155' }}>
+        <option>Tam görünür / Çok net</option>
+        <option>Önünde engel var (ağaç, direk vb.)</option>
+        <option>Aydınlatma yetersiz</option>
+      </select>
+    </div>
+
+    <div style={{ marginBottom: '14px' }}>
+      <label style={{ color: '#cbd5e1', fontSize: '12px', display: 'block', marginBottom: '4px' }}>
+        3. Pano çevresindeki yaya ve araç yoğunluğu:
+      </label>
+      <select style={{ width: '100%', padding: '8px', borderRadius: '6px', background: '#0f172a', color: '#fff', border: '1px solid #334155' }}>
+        <option>Yüksek yoğunluk</option>
+        <option>Orta yoğunluk</option>
+        <option>Düşük / Sakin</option>
+      </select>
+    </div>
+
+    <button
+      onClick={submitSurvey}
+      style={{ width: '100%', padding: '12px', background: '#0284c7', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}
+    >
+      Anketi Tamamla ve +50 Puanı Al
+    </button>
+  </div>
+)}
           </div>
         )}
 
