@@ -447,7 +447,7 @@ export default function App() {
                     onClick={() => {
                       setSelectedCampaign(c);
                       setShowSurvey(false);
-                      setStatusMessage("${c.title}" görevi seçildi. Şimdi panoyu fotoğraflayın.);
+                      setStatusMessage(c.title + " secildi. Simdi panoyu fotograflayin.");
                     }}
                     style={{
                       backgroundColor: '#ffffff',
