@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 
-// Sabit Kampanyalar (Farklı Sektörlerden 5 Billboard Görevi)
 const CAMPAIGNS = [
   {
     id: 1,
@@ -47,7 +46,6 @@ const CAMPAIGNS = [
 const AVATARS = ['🦊', '🐼', '🐯', '🐨', '🦁'];
 
 export default function App() {
-  // Kullanıcı ve Profil Durumları
   const [currentUser, setCurrentUser] = useState(() => {
     try {
       const saved = localStorage.getItem('ad_user');
@@ -62,21 +60,20 @@ export default function App() {
   const [authName, setAuthName] = useState('');
   const [isRegisterMode, setIsRegisterMode] = useState(false);
 
-  // Menü ve Navigasyon
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState('campaigns'); // 'campaigns' | 'rewards'
+  const [activeTab, setActiveTab] = useState('campaigns');
 
-  // Kampanya ve Anket Durumları
-  const [selectedCampaign, setSelectedCampaign] = useState(null);
+  // Görev ekranı kontrolü (Ayrı sayfa modu)
+  const [activeTaskCampaign, setActiveTaskCampaign] = useState(null);
   const [showSurvey, setShowSurvey] = useState(false);
   const [statusMessage, setStatusMessage] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Altın Para Animasyonu State'leri
+  // Altın para ve puan animasyonu
   const [showCoins, setShowCoins] = useState(false);
   const [coinBounce, setCoinBounce] = useState(false);
 
-  // 5 Çoktan Seçmeli + 1 Açık Uçlu Soru State'leri
+  // Anket yanıtları
   const [q1, setQ1] = useState('Çok Dikkat Çekici');
   const [q2, setQ2] = useState('Oldukça Açık ve Anlaşılır');
   const [q3, setQ3] = useState('Tasarım Çok Başarılı');
@@ -84,14 +81,12 @@ export default function App() {
   const [q5, setQ5] = useState('Kusursuz / Çok Net');
   const [openFeedback, setOpenFeedback] = useState('');
 
-  // Kullanıcı durumunu localStorage'a kaydet
   useEffect(() => {
     if (currentUser) {
       localStorage.setItem('ad_user', JSON.stringify(currentUser));
     }
   }, [currentUser]);
 
-  // Giriş / Kayıt İşlemi
   const handleAuth = (e) => {
     e.preventDefault();
     if (!authEmail || !authPassword) {
@@ -103,17 +98,17 @@ export default function App() {
       name: authName.trim() || authEmail.split('@')[0],
       email: authEmail.trim(),
       avatar: '🦊',
-      points: 100 // İlk girişte hoş geldin puanı
+      points: 100
     };
     setCurrentUser(userData);
-   setStatusMessage("Hos geldiniz!");
+    setStatusMessage('Hoş geldiniz, ' + userData.name + '!');
   };
 
   const handleLogout = () => {
     setCurrentUser(null);
     localStorage.removeItem('ad_user');
     setIsDrawerOpen(false);
-    setSelectedCampaign(null);
+    setActiveTaskCampaign(null);
     setShowSurvey(false);
     setStatusMessage('Oturum kapatıldı.');
   };
@@ -123,30 +118,30 @@ export default function App() {
     setCurrentUser(prev => ({ ...prev, avatar: av }));
   };
 
-  // Kamera Çekimi Demo Doğrulama
+  // Kameradan fotoğraf çekildiğinde anket adımına geç
   const handleImageCapture = (e) => {
     if (!e.target.files || e.target.files.length === 0) return;
     setLoading(true);
-    setStatusMessage('Görsel analiz ediliyor...');
+    setStatusMessage('Pano taranıyor...');
 
     setTimeout(() => {
       setLoading(false);
       setShowSurvey(true);
-      setStatusMessage('Reklam panosu doğrulandı! Lütfen 6 soruluk etki anketini yanıtlayın.');
-    }, 1000);
+      setStatusMessage('Pano başarıyla doğrulandı! Lütfen 6 soruluk etki anketini tamamlayın.');
+    }, 900);
   };
 
-  // Anketi Gönderme & Altın Para Efekti
+  // Anketi tamamlama ve puan artışı
   const handleSurveySubmit = (e) => {
     e.preventDefault();
     setLoading(true);
 
-    const earned = selectedCampaign ? selectedCampaign.reward_points : 50;
+    const earned = activeTaskCampaign ? activeTaskCampaign.reward_points : 50;
 
-    // 1. Para animasyonunu başlat
+    // Altın para uçuşunu başlat
     setShowCoins(true);
 
-    // 2. Paralar cüzdana vardığında rozeti zıplat ve puanı artır
+    // Paralar cüzdana vardığında puanı artır ve rozeti zıplat
     setTimeout(() => {
       setCoinBounce(true);
       setCurrentUser(prev => ({
@@ -156,24 +151,24 @@ export default function App() {
       setTimeout(() => setCoinBounce(false), 500);
     }, 850);
 
-    // 3. Efekti ve anketi temizle
+    // Başarıyla ana sayfaya dön
     setTimeout(() => {
       setShowCoins(false);
       setShowSurvey(false);
-      setStatusMessage("Tebrikler! Gorusleriniz kaydedildi ve puaniniz yuklendi!");
+      setActiveTaskCampaign(null);
       setLoading(false);
       setOpenFeedback('');
-    }, 1300);
+      setStatusMessage('Tebrikler! Görev tamamlandı, +' + earned + ' puan hesabınıza eklendi!');
+    }, 1400);
   };
 
-  // Giriş Yapılmamışsa Gösterilecek Ekran
   if (!currentUser) {
     return (
       <div style={{ minHeight: '100vh', backgroundColor: '#091024', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
         <div style={{ backgroundColor: '#ffffff', color: '#0f172a', padding: '32px', borderRadius: '24px', width: '100%', maxWidth: '390px', boxShadow: '0 20px 45px rgba(0,0,0,0.4)' }}>
           <div style={{ textAlign: 'center', marginBottom: '24px' }}>
             <div style={{ fontSize: '38px', marginBottom: '4px' }}>🎯</div>
-            <h1 style={{ color: '#0284c7', margin: 0, fontSize: '26px', fontWeight: '800', letterSpacing: '-0.5px' }}>AdVantage</h1>
+            <h1 style={{ color: '#0284c7', margin: 0, fontSize: '26px', fontWeight: '800' }}>AdVantage</h1>
             <p style={{ color: '#64748b', fontSize: '13px', marginTop: '4px' }}>Açık Hava Reklam Ölçümleme Platformu</p>
           </div>
 
@@ -215,14 +210,14 @@ export default function App() {
               type="submit"
               style={{ backgroundColor: '#0284c7', color: '#fff', border: 'none', padding: '14px', borderRadius: '12px', fontWeight: 'bold', fontSize: '15px', cursor: 'pointer', marginTop: '6px' }}
             >
-              {isRegisterMode ? 'Kayıt Ol ve +100 Puan Kazan' : 'Giriş Yap'}
+              {isRegisterMode ? 'Kayıt Ol ve Kazanmaya Başla' : 'Giriş Yap'}
             </button>
           </form>
 
           <div style={{ textAlign: 'center', marginTop: '16px' }}>
             <button
               onClick={() => setIsRegisterMode(!isRegisterMode)}
-              style={{ background: 'none', border: 'none', color: '#0284c7', fontSize: '13px', cursor: 'pointer', textDecoration: 'underline', fontWeight: '500' }}
+              style={{ background: 'none', border: 'none', color: '#0284c7', fontSize: '13px', cursor: 'pointer', textDecoration: 'underline' }}
             >
               {isRegisterMode ? 'Zaten hesabınız var mı? Giriş yapın' : 'Hesabınız yok mu? Yeni hesap açın'}
             </button>
@@ -235,7 +230,7 @@ export default function App() {
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#091024', color: '#f8fafc', fontFamily: 'system-ui, -apple-system, sans-serif', paddingBottom: '70px', position: 'relative', overflowX: 'hidden' }}>
       
-      {/* CSS Animasyonları */}
+      {/* Para ve Cüzdan Animasyonları */}
       <style>{`
         @keyframes flyToWallet {
           0% {
@@ -253,7 +248,7 @@ export default function App() {
         }
         @keyframes walletBounce {
           0% { transform: scale(1); }
-          50% { transform: scale(1.22); background-color: #fef08a; }
+          50% { transform: scale(1.25); background-color: #fef08a; }
           100% { transform: scale(1); }
         }
         .coin-particle {
@@ -262,7 +257,7 @@ export default function App() {
           top: 60%;
           font-size: 30px;
           pointer-events: none;
-          z-index: 100;
+          z-index: 120;
           animation: flyToWallet 0.95s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
         }
         .wallet-bump {
@@ -270,7 +265,7 @@ export default function App() {
         }
       `}</style>
 
-      {/* 6 Adet Uçuşan Altın Para */}
+      {/* Uçuşan Altın Paralar */}
       {showCoins && (
         <>
           <div className="coin-particle" style={{ '--rand-x': '-70', '--rand-offset': '10', animationDelay: '0ms' }}>🪙</div>
@@ -298,7 +293,7 @@ export default function App() {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          {/* Cüzdan / Puan Rozeti */}
+          {/* Canlı Puan Cüzdanı */}
           <div
             className={coinBounce ? 'wallet-bump' : ''}
             style={{
@@ -328,7 +323,7 @@ export default function App() {
         </div>
       </header>
 
-      {/* Sol Çekmece Menü (Drawer) */}
+      {/* Sol Çekmece Menü */}
       {isDrawerOpen && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex' }}>
           <div
@@ -339,20 +334,18 @@ export default function App() {
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                 <h3 style={{ margin: 0, color: '#0369a1', fontSize: '18px', fontWeight: '800' }}>Kullanıcı Profili</h3>
-                <button onClick={() => setIsDrawerOpen(false)} style={{ background: '#f1f5f9', border: 'none', borderRadius: '50%', width: '32px', height: '32px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px' }}>✕</button>
+                <button onClick={() => setIsDrawerOpen(false)} style={{ background: '#f1f5f9', border: 'none', borderRadius: '50%', width: '32px', height: '32px', cursor: 'pointer', fontWeight: 'bold' }}>✕</button>
               </div>
 
-              {/* Kullanıcı Kartı */}
               <div style={{ textAlign: 'center', padding: '18px', backgroundColor: '#f8fafc', borderRadius: '18px', border: '1px solid #e2e8f0', marginBottom: '20px' }}>
                 <div style={{ fontSize: '56px', marginBottom: '6px' }}>{currentUser.avatar}</div>
                 <div style={{ fontWeight: 'bold', fontSize: '17px', color: '#0f172a' }}>{currentUser.name}</div>
-                <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>{currentUser.email}</div>
+                <div style={{ fontSize: '12px', color: '#64748b' }}>{currentUser.email}</div>
                 <div style={{ marginTop: '12px', display: 'inline-block', backgroundColor: '#0284c7', color: '#fff', padding: '5px 14px', borderRadius: '14px', fontSize: '13px', fontWeight: 'bold' }}>
                   Toplam: {currentUser.points} Puan
                 </div>
               </div>
 
-              {/* Avatar Seçici */}
               <div style={{ marginBottom: '22px' }}>
                 <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#475569', marginBottom: '10px' }}>Avatarını Seç:</div>
                 <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
@@ -368,7 +361,6 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Menü Sekmeleri */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 <button
                   onClick={() => { setActiveTab('campaigns'); setIsDrawerOpen(false); }}
@@ -395,10 +387,160 @@ export default function App() {
         </div>
       )}
 
-      {/* Ana Gövde */}
+      {/* Ayrı Sayfa / Modal Olarak Açılan Görev Ekranı */}
+      {activeTaskCampaign && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 60, backgroundColor: '#091024', overflowY: 'auto', padding: '20px 16px 60px 16px' }}>
+          <div style={{ maxWidth: '520px', margin: '0 auto' }}>
+            
+            {/* Geri Dön Butonu ve Başlık */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+              <button
+                onClick={() => {
+                  setActiveTaskCampaign(null);
+                  setShowSurvey(false);
+                }}
+                style={{ background: '#1e293b', border: '1px solid #334155', color: '#38bdf8', padding: '8px 16px', borderRadius: '10px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px' }}
+              >
+                ← Listeye Dön
+              </button>
+              <div style={{ backgroundColor: '#fef3c7', color: '#b45309', padding: '6px 14px', borderRadius: '12px', fontSize: '13px', fontWeight: '800' }}>
+                +{activeTaskCampaign.reward_points} Puan Ödül
+              </div>
+            </div>
+
+            {/* Görev Başlık Kartı */}
+            <div style={{ backgroundColor: '#ffffff', color: '#0f172a', padding: '20px', borderRadius: '20px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '16px', boxShadow: '0 6px 20px rgba(0,0,0,0.3)' }}>
+              <div style={{ fontSize: '38px', backgroundColor: '#f1f5f9', width: '64px', height: '64px', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {activeTaskCampaign.banner}
+              </div>
+              <div>
+                <span style={{ fontSize: '11px', color: '#0284c7', fontWeight: 'bold', textTransform: 'uppercase' }}>{activeTaskCampaign.category}</span>
+                <h2 style={{ margin: '2px 0 0 0', fontSize: '17px', color: '#1e293b' }}>{activeTaskCampaign.title}</h2>
+              </div>
+            </div>
+
+            {/* Aşama 1: Fotoğraf Çekme Sayfası */}
+            {!showSurvey && (
+              <div style={{ backgroundColor: '#1e293b', padding: '36px 20px', borderRadius: '24px', textAlign: 'center', border: '2px dashed #38bdf8', boxShadow: '0 10px 30px rgba(0,0,0,0.3)' }}>
+                <div style={{ fontSize: '50px', marginBottom: '12px' }}>📸</div>
+                <h3 style={{ margin: '0 0 8px 0', fontSize: '19px', color: '#38bdf8' }}>
+                  {activeTaskCampaign.brand_name} Panosunu Fotoğraflayın
+                </h3>
+                <p style={{ fontSize: '13px', color: '#94a3b8', margin: '0 auto 24px auto', maxWidth: '320px', lineHeight: '1.5' }}>
+                  Doğrulama için lütfen açık hava reklam panosunun fotoğrafını çekin. Fotoğraf hemen onaylanıp değerlendirme anketini açacaktır.
+                </p>
+
+                <label style={{ display: 'inline-block', backgroundColor: '#0284c7', color: '#fff', padding: '16px 36px', borderRadius: '14px', fontWeight: 'bold', cursor: 'pointer', fontSize: '16px', boxShadow: '0 6px 18px rgba(2,132,199,0.4)' }}>
+                  📷 Kamerayı Aç ve Çek
+                  <input
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    style={{ display: 'none' }}
+                    onChange={handleImageCapture}
+                  />
+                </label>
+              </div>
+            )}
+
+            {/* Aşama 2: 6 Soruluk Reklam Etki Anketi */}
+            {showSurvey && (
+              <form onSubmit={handleSurveySubmit} style={{ backgroundColor: '#ffffff', color: '#0f172a', padding: '24px', borderRadius: '24px', boxShadow: '0 12px 35px rgba(0,0,0,0.4)' }}>
+                <div style={{ borderBottom: '2px solid #f1f5f9', paddingBottom: '12px', marginBottom: '18px' }}>
+                  <span style={{ fontSize: '11px', color: '#0284c7', fontWeight: 'bold', textTransform: 'uppercase' }}>Saha Ölçümleme & Etki Analizi</span>
+                  <h3 style={{ margin: '4px 0 0 0', fontSize: '18px', color: '#0f172a' }}>
+                    {activeTaskCampaign.brand_name} Değerlendirme Anketi
+                  </h3>
+                </div>
+
+                <div style={{ marginBottom: '16px' }}>
+                  <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#334155', display: 'block', marginBottom: '6px' }}>
+                    1. Bu reklam panosu çevredeki unsurlara kıyasla ne kadar dikkat çekiciydi?
+                  </label>
+                  <select value={q1} onChange={(e) => setQ1(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '13px' }}>
+                    <option>Çok Dikkat Çekici (Hemen fark ettim)</option>
+                    <option>Orta Düzeyde (Normal bir afiş kadar)</option>
+                    <option>Zayıf (Fark etmek güçtü)</option>
+                    <option>Hiç Dikkat Çekici Değil</option>
+                  </select>
+                </div>
+
+                <div style={{ marginBottom: '16px' }}>
+                  <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#334155', display: 'block', marginBottom: '6px' }}>
+                    2. Reklamın vermek istediği ana mesaj veya ürün net anlaşıldı mı?
+                  </label>
+                  <select value={q2} onChange={(e) => setQ2(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '13px' }}>
+                    <option>Oldukça Açık ve Anlaşılır</option>
+                    <option>Kısmen Anlaşılır (Biraz düşünmek gerekti)</option>
+                    <option>Karışık / Mesaj Belirsiz</option>
+                  </select>
+                </div>
+
+                <div style={{ marginBottom: '16px' }}>
+                  <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#334155', display: 'block', marginBottom: '6px' }}>
+                    3. Reklamın görsel tasarımı, renkleri ve estetiği sizde nasıl bir his bıraktı?
+                  </label>
+                  <select value={q3} onChange={(e) => setQ3(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '13px' }}>
+                    <option>Tasarım Çok Başarılı & İlgi Çekici</option>
+                    <option>Sıradan / Standart</option>
+                    <option>Göz Yoran / İlgisiz</option>
+                  </select>
+                </div>
+
+                <div style={{ marginBottom: '16px' }}>
+                  <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#334155', display: 'block', marginBottom: '6px' }}>
+                    4. Bu reklamı görmek, söz konusu markadan alışveriş yapma / ürünü deneme isteğinizi etkiledi mi?
+                  </label>
+                  <select value={q4} onChange={(e) => setQ4(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '13px' }}>
+                    <option>Evet, Kesinlikle Satın Alma İsteği Uyandırdı</option>
+                    <option>Markaya Olan İlgimi/Sempatimi Artırdı</option>
+                    <option>Kararımı Değiştirmedi (Nötr)</option>
+                    <option>Olumsuz Etkiledi</option>
+                  </select>
+                </div>
+
+                <div style={{ marginBottom: '16px' }}>
+                  <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#334155', display: 'block', marginBottom: '6px' }}>
+                    5. Panonun fiziki konumu, aydınlatması ve okunabilirliği nasıldı?
+                  </label>
+                  <select value={q5} onChange={(e) => setQ5(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '13px' }}>
+                    <option>Kusursuz / Çok Net Görünüyor</option>
+                    <option>Aydınlatma Yetersiz / Soluk</option>
+                    <option>Önünde Engel Var (Ağaç, direk, bina vb.)</option>
+                    <option>Fiziksel Olarak Hasarlı / Yırtık</option>
+                  </select>
+                </div>
+
+                <div style={{ marginBottom: '20px' }}>
+                  <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#334155', display: 'block', marginBottom: '6px' }}>
+                    6. Bu reklam veya marka hakkındaki kişisel fikir ve önerileriniz nelerdir?
+                  </label>
+                  <textarea
+                    rows={3}
+                    placeholder="Reklam hakkındaki kendi görüş ve önerilerinizi buraya yazabilirsiniz..."
+                    value={openFeedback}
+                    onChange={(e) => setOpenFeedback(e.target.value)}
+                    style={{ width: '100%', padding: '10px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '13px', boxSizing: 'border-box', fontFamily: 'inherit' }}
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  style={{ width: '100%', backgroundColor: '#0284c7', color: '#fff', border: 'none', padding: '14px', borderRadius: '12px', fontWeight: 'bold', fontSize: '15px', cursor: 'pointer', boxShadow: '0 4px 14px rgba(2,132,199,0.4)' }}
+                >
+                  {loading ? 'Kaydediliyor...' : ('Değerlendirmeyi Tamamla (+' + activeTaskCampaign.reward_points + ' Puan)')}
+                </button>
+              </form>
+            )}
+
+          </div>
+        </div>
+      )}
+
+      {/* Ana Liste Ekranı */}
       <main style={{ maxWidth: '520px', margin: '0 auto', padding: '20px 16px' }}>
 
-        {/* Durum Bildirim Kutusu */}
         {statusMessage && (
           <div style={{ backgroundColor: '#0284c7', color: '#ffffff', padding: '14px 18px', borderRadius: '14px', marginBottom: '18px', fontSize: '13px', lineHeight: '1.4', boxShadow: '0 4px 14px rgba(2,132,199,0.3)', fontWeight: '500' }}>
             {statusMessage}
@@ -434,170 +576,44 @@ export default function App() {
           <div>
             <div style={{ marginBottom: '18px' }}>
               <h2 style={{ fontSize: '20px', margin: '0 0 6px 0', color: '#f8fafc', fontWeight: '800' }}>Yakındaki Billboard Görevleri</h2>
-              <p style={{ margin: 0, fontSize: '13px', color: '#94a3b8' }}>Bir reklam seçin, panoyu fotoğraflayın ve etki anketini yanıtlayın.</p>
+              <p style={{ margin: 0, fontSize: '13px', color: '#94a3b8' }}>Görevi başlatmak için bir reklam panosu seçin.</p>
             </div>
 
-            {/* Dikey Kaydırılabilir Kartlar */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              {CAMPAIGNS.map((c) => {
-                const isSelected = selectedCampaign?.id === c.id;
-                return (
-                  <div
-                    key={c.id}
-                    onClick={() => {
-                      setSelectedCampaign(c);
-                      setShowSurvey(false);
-                      setStatusMessage(c.title + " secildi. Simdi panoyu fotograflayin.");
-                    }}
-                    style={{
-                      backgroundColor: '#ffffff',
-                      color: '#0f172a',
-                      padding: '16px 18px',
-                      borderRadius: '18px',
-                      cursor: 'pointer',
-                      border: isSelected ? '3px solid #38bdf8' : '2px solid transparent',
-                      boxShadow: '0 6px 18px rgba(0,0,0,0.2)',
-                      transition: 'transform 0.15s ease'
-                    }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                        <div style={{ fontSize: '30px', backgroundColor: '#f1f5f9', width: '54px', height: '54px', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          {c.banner}
-                        </div>
-                        <div>
-                          <span style={{ fontSize: '11px', color: '#0284c7', fontWeight: 'bold', textTransform: 'uppercase' }}>{c.category}</span>
-                          <h3 style={{ margin: '2px 0 0 0', fontSize: '15px', color: '#1e293b' }}>{c.title}</h3>
-                        </div>
+              {CAMPAIGNS.map((c) => (
+                <div
+                  key={c.id}
+                  onClick={() => {
+                    setActiveTaskCampaign(c);
+                    setShowSurvey(false);
+                  }}
+                  style={{
+                    backgroundColor: '#ffffff',
+                    color: '#0f172a',
+                    padding: '16px 18px',
+                    borderRadius: '18px',
+                    cursor: 'pointer',
+                    boxShadow: '0 6px 18px rgba(0,0,0,0.2)',
+                    transition: 'transform 0.15s ease'
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                      <div style={{ fontSize: '30px', backgroundColor: '#f1f5f9', width: '54px', height: '54px', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        {c.banner}
                       </div>
-                      <div style={{ backgroundColor: '#fef3c7', color: '#b45309', padding: '6px 12px', borderRadius: '12px', fontSize: '12px', fontWeight: '800' }}>
-                        +{c.reward_points} Puan
+                      <div>
+                        <span style={{ fontSize: '11px', color: '#0284c7', fontWeight: 'bold', textTransform: 'uppercase' }}>{c.category}</span>
+                        <h3 style={{ margin: '2px 0 0 0', fontSize: '15px', color: '#1e293b' }}>{c.title}</h3>
                       </div>
                     </div>
+                    <div style={{ backgroundColor: '#fef3c7', color: '#b45309', padding: '6px 12px', borderRadius: '12px', fontSize: '12px', fontWeight: '800' }}>
+                      +{c.reward_points} Puan
+                    </div>
                   </div>
-                );
-              })}
+                </div>
+              ))}
             </div>
-
-            {/* Kamera Çekim Alanı */}
-            {selectedCampaign && !showSurvey && (
-              <div style={{ marginTop: '22px', backgroundColor: '#1e293b', padding: '22px', borderRadius: '20px', textAlign: 'center', border: '2px dashed #38bdf8' }}>
-                <h4 style={{ margin: '0 0 6px 0', fontSize: '16px', color: '#38bdf8' }}>
-                  {selectedCampaign.brand_name} Panosunu Fotoğraflayın
-                </h4>
-                <p style={{ fontSize: '12px', color: '#94a3b8', margin: '0 0 16px 0' }}>
-                  Görsel doğrulandığında 6 soruluk etki araştırması açılacaktır.
-                </p>
-
-                <label style={{ display: 'inline-block', backgroundColor: '#0284c7', color: '#fff', padding: '12px 28px', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer', fontSize: '14px' }}>
-                  📷 Kamerayı Aç ve Çek
-                  <input
-                    type="file"
-                    accept="image/*"
-                    capture="environment"
-                    style={{ display: 'none' }}
-                    onChange={handleImageCapture}
-                  />
-                </label>
-              </div>
-            )}
-
-            {/* 6 Soruluk Reklam Etki ve Tüketici Algısı Anketi */}
-            {showSurvey && selectedCampaign && (
-              <form onSubmit={handleSurveySubmit} style={{ marginTop: '24px', backgroundColor: '#ffffff', color: '#0f172a', padding: '24px', borderRadius: '24px', boxShadow: '0 12px 35px rgba(0,0,0,0.35)' }}>
-                <div style={{ borderBottom: '2px solid #f1f5f9', paddingBottom: '12px', marginBottom: '18px' }}>
-                  <span style={{ fontSize: '11px', color: '#0284c7', fontWeight: 'bold', textTransform: 'uppercase' }}>Pazar Araştırması & Saha Doğrulama</span>
-                  <h3 style={{ margin: '4px 0 0 0', fontSize: '17px', color: '#0f172a' }}>
-                    {selectedCampaign.brand_name} Reklam Değerlendirmesi
-                  </h3>
-                </div>
-
-                {/* Soru 1 */}
-                <div style={{ marginBottom: '14px' }}>
-                  <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#334155', display: 'block', marginBottom: '6px' }}>
-                    1. Bu reklam panosu çevredeki unsurlara kıyasla ne kadar dikkat çekiciydi?
-                  </label>
-                  <select value={q1} onChange={(e) => setQ1(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '13px' }}>
-                    <option>Çok Dikkat Çekici (Hemen fark ettim)</option>
-                    <option>Orta Düzeyde (Normal bir afiş kadar)</option>
-                    <option>Zayıf (Fark etmek güçtü)</option>
-                    <option>Hiç Dikkat Çekici Değil</option>
-                  </select>
-                </div>
-
-                {/* Soru 2 */}
-                <div style={{ marginBottom: '14px' }}>
-                  <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#334155', display: 'block', marginBottom: '6px' }}>
-                    2. Reklamın vermek istediği ana mesaj veya ürün net anlaşıldı mı?
-                  </label>
-                  <select value={q2} onChange={(e) => setQ2(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '13px' }}>
-                    <option>Oldukça Açık ve Anlaşılır</option>
-                    <option>Kısmen Anlaşılır (Biraz düşünmek gerekti)</option>
-                    <option>Karışık / Mesaj Belirsiz</option>
-                  </select>
-                </div>
-
-                {/* Soru 3 */}
-                <div style={{ marginBottom: '14px' }}>
-                  <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#334155', display: 'block', marginBottom: '6px' }}>
-                    3. Reklamın görsel tasarımı, renkleri ve estetiği sizde nasıl bir his bıraktı?
-                  </label>
-                  <select value={q3} onChange={(e) => setQ3(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '13px' }}>
-                    <option>Tasarım Çok Başarılı & İlgi Çekici</option>
-                    <option>Sıradan / Standart</option>
-                    <option>Göz Yoran / İlgisiz</option>
-                  </select>
-                </div>
-
-                {/* Soru 4 */}
-                <div style={{ marginBottom: '14px' }}>
-                  <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#334155', display: 'block', marginBottom: '6px' }}>
-                    4. Bu reklamı görmek, söz konusu markadan alışveriş yapma / ürünü deneme isteğinizi etkiledi mi?
-                  </label>
-                  <select value={q4} onChange={(e) => setQ4(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '13px' }}>
-                    <option>Evet, Kesinlikle Satın Alma İsteği Uyandırdı</option>
-                    <option>Markaya Olan İlgimi/Sempatimi Artırdı</option>
-                    <option>Kararımı Değiştirmedi (Nötr)</option>
-                    <option>Olumsuz Etkiledi</option>
-                  </select>
-                </div>
-
-                {/* Soru 5 */}
-                <div style={{ marginBottom: '14px' }}>
-                  <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#334155', display: 'block', marginBottom: '6px' }}>
-                    5. Panonun fiziki konumu, aydınlatması ve okunabilirliği nasıldı?
-                  </label>
-                  <select value={q5} onChange={(e) => setQ5(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '13px' }}>
-                    <option>Kusursuz / Çok Net Görünüyor</option>
-                    <option>Aydınlatma Yetersiz / Soluk</option>
-                    <option>Önünde Engel Var (Ağaç, direk, bina vb.)</option>
-                    <option>Fiziksel Olarak Hasarlı / Yırtık</option>
-                  </select>
-                </div>
-
-                {/* Soru 6 (Açık Uçlu) */}
-                <div style={{ marginBottom: '18px' }}>
-                  <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#334155', display: 'block', marginBottom: '6px' }}>
-                    6. Bu reklam veya marka hakkındaki kişisel fikir ve önerileriniz nelerdir?
-                  </label>
-                  <textarea
-                    rows={3}
-                    placeholder="Reklam hakkındaki kendi görüşlerinizi, önerilerinizi veya hissettiklerinizi buraya yazabilirsiniz..."
-                    value={openFeedback}
-                    onChange={(e) => setOpenFeedback(e.target.value)}
-                    style={{ width: '100%', padding: '10px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '13px', boxSizing: 'border-box', fontFamily: 'inherit' }}
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={loading}
-                  style={{ width: '100%', backgroundColor: '#0284c7', color: '#fff', border: 'none', padding: '14px', borderRadius: '12px', fontWeight: 'bold', fontSize: '15px', cursor: 'pointer', boxShadow: '0 4px 14px rgba(2,132,199,0.4)' }}
-                >
-                  {loading ? 'Kaydediliyor...' : ('Degerlendirmeyi Tamamla (+' + selectedCampaign.reward_points + ' Puan)')}
-                </button>
-              </form>
-            )}
           </div>
         )}
       </main>
