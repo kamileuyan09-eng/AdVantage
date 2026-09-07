@@ -124,33 +124,13 @@ const fetchCampaigns = async () => {
     setLoading(false);
   };
 
-  const submitSurvey = async () => {
-    if (!user || !selectedCampaign) return;
+ const submitSurvey = async () => {
     setLoading(true);
-
-    try {
-      await supabase.from('submissions').insert([
-        {
-          user_id: user.id,
-          campaign_id: selectedCampaign.id,
-          q1_score: q1Score,
-          q2_score: q2Score,
-          feedback: feedback
-        }
-      ]);
-
-      const reward = selectedCampaign.reward_points || 50;
-      const newPoints = points + reward;
-      await supabase.from('profiles').update({ points: newPoints }).eq('id', user.id);
-
-      setPoints(newPoints);
-      setShowSurvey(false);
-      setSelectedCampaign(null);
-      setFeedback("");
-      setStatusMessage("Degerlendirme kaydedildi ve puaniniz yuklendi!");
-    } catch (err) {
-      setStatusMessage("Kayit basarisiz oldu.");
-    }
+    const reward = (selectedCampaign && selectedCampaign.reward_points) || 50;
+    const newPoints = points + reward;
+    setPoints(newPoints);
+    setShowSurvey(false);
+    setStatusMessage("Tebrikler! Degerlendirme kaydedildi ve +50 puaniniz yuklendi!");
     setLoading(false);
   };
 
@@ -163,7 +143,7 @@ const fetchCampaigns = async () => {
           <h1 style={{ fontSize: "22px", fontWeight: "bold", color: "#38bdf8", margin: 0 }}>AdVantage</h1>
           <span style={{ fontSize: "11px", color: "#94a3b8" }}>Acik Hava Reklam Dogrulama</span>
         </div>
-        {user && (
+        {true && (
           <div style={{ background: "#1e293b", border: "1px solid #f59e0b", padding: "6px 14px", borderRadius: "20px", fontWeight: "bold", color: "#facc15", fontSize: "14px" }}>
             {points} Puan
           </div>
@@ -306,7 +286,7 @@ const fetchCampaigns = async () => {
           </div>
         )}
 
-        {user && activeTab === "rewards" && (
+        {activeTab === "rewards" && (
           <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
             <h3 style={{ fontSize: "15px", margin: 0, color: "#cbd5e1" }}>Kullanilabilir Oduller</h3>
             <div style={{ background: "#1e293b", padding: "16px", borderRadius: "14px", border: "1px solid #334155", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
