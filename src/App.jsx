@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
 
-// Supabase Bağlantı Bilgileri
+// Supabase Bilgileri
 const SUPABASE_URL = 'https://nlsmotipvjkfwewharut.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_YFnvR0ZVP9JOG7-Di6e66Q_46a_f4PC';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5sc21vdGlwdmprZndld2hhcnV0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg3OTAxMDcsImV4cCI6MjEwNDM2NjEwN30.ks0ush6nPp0tgIaSUk_iFXwsssJVau4PxqWIsTKx6TM';
+
+// Yönetici E-Postası (Sadece bu adres paneli görebilir)
+const ADMIN_EMAIL = 'kamileuyan.09@gmail.com';
 
 const CAMPAIGNS = [
   {
@@ -65,23 +68,19 @@ export default function App() {
   const [isRegisterMode, setIsRegisterMode] = useState(false);
 
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState('campaigns'); // 'campaigns' | 'rewards' | 'admin'
+  const [activeTab, setActiveTab] = useState('campaigns');
 
-  // Buluttan çekilen yönetici verileri
   const [adminSurveys, setAdminSurveys] = useState([]);
   const [selectedBrandFilter, setSelectedBrandFilter] = useState('Tümü');
 
-  // Görev ekranı
   const [activeTaskCampaign, setActiveTaskCampaign] = useState(null);
   const [showSurvey, setShowSurvey] = useState(false);
   const [statusMessage, setStatusMessage] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Animasyon state'leri
   const [showCoins, setShowCoins] = useState(false);
   const [coinBounce, setCoinBounce] = useState(false);
 
-  // Anket yanıtları
   const [q1, setQ1] = useState('Çok Dikkat Çekici');
   const [q2, setQ2] = useState('Oldukça Açık ve Anlaşılır');
   const [q3, setQ3] = useState('Tasarım Çok Başarılı');
@@ -89,13 +88,15 @@ export default function App() {
   const [q5, setQ5] = useState('Kusursuz / Çok Net');
   const [openFeedback, setOpenFeedback] = useState('');
 
+  // Giriş yapan kullanıcının admin olup olmadığını denetle
+  const isAdmin = currentUser?.email?.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase().trim();
+
   useEffect(() => {
     if (currentUser) {
       localStorage.setItem('ad_user', JSON.stringify(currentUser));
     }
   }, [currentUser]);
 
-  // Admin sekmesi açıldığında Supabase'den verileri getir
   const fetchSurveysFromCloud = async () => {
     try {
       setLoading(true);
@@ -123,9 +124,10 @@ export default function App() {
       return;
     }
 
+    const cleanEmail = authEmail.trim().toLowerCase();
     const userData = {
-      name: authName.trim() || authEmail.split('@')[0],
-      email: authEmail.trim(),
+      name: authName.trim() || cleanEmail.split('@')[0],
+      email: cleanEmail,
       avatar: '🦊',
       points: 100
     };
@@ -139,6 +141,7 @@ export default function App() {
     setIsDrawerOpen(false);
     setActiveTaskCampaign(null);
     setShowSurvey(false);
+    setActiveTab('campaigns');
     setStatusMessage('Oturum kapatıldı.');
   };
 
@@ -159,7 +162,6 @@ export default function App() {
     }, 900);
   };
 
-  // Anketi Supabase Bulut Veritabanına Kaydetme
   const handleSurveySubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -181,7 +183,6 @@ export default function App() {
     };
 
     try {
-      // Supabase REST API'sine kayıt gönderimi
       await fetch(SUPABASE_URL + '/rest/v1/surveys', {
         method: 'POST',
         headers: {
@@ -193,10 +194,9 @@ export default function App() {
         body: JSON.stringify(payload)
       });
     } catch (err) {
-      console.error('Bulut kayıt hatası:', err);
+      console.error('Kayıt hatası:', err);
     }
 
-    // Puan animasyonu ve cüzdan güncellemesi
     setShowCoins(true);
 
     setTimeout(() => {
@@ -214,11 +214,10 @@ export default function App() {
       setActiveTaskCampaign(null);
       setLoading(false);
       setOpenFeedback('');
-      setStatusMessage('Tebrikler! Yanıtlarınız buluta kaydedildi ve +' + earned + ' puan eklendi!');
+      setStatusMessage('Tebrikler! Yanıtlarınız kaydedildi ve +' + earned + ' puan eklendi!');
     }, 1400);
   };
 
-  // Giriş Ekranı
   if (!currentUser) {
     return (
       <div style={{ minHeight: '100vh', backgroundColor: '#091024', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
@@ -235,7 +234,7 @@ export default function App() {
                 <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#475569', display: 'block', marginBottom: '4px' }}>Ad Soyad</label>
                 <input
                   type="text"
-                  placeholder="Ahmet Yılmaz"
+                  placeholder="Ad Soyad"
                   value={authName}
                   onChange={(e) => setAuthName(e.target.value)}
                   style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }}
@@ -291,7 +290,6 @@ export default function App() {
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#091024', color: '#f8fafc', fontFamily: 'system-ui, -apple-system, sans-serif', paddingBottom: '70px', position: 'relative', overflowX: 'hidden' }}>
       
-      {/* Animasyon CSS */}
       <style>{`
         @keyframes flyToWallet {
           0% { transform: translate(0, 0) scale(1.3) rotate(0deg); opacity: 1; }
@@ -391,7 +389,15 @@ export default function App() {
                 <div style={{ fontSize: '56px', marginBottom: '6px' }}>{currentUser.avatar}</div>
                 <div style={{ fontWeight: 'bold', fontSize: '17px', color: '#0f172a' }}>{currentUser.name}</div>
                 <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>{currentUser.email}</div>
-                <div style={{ marginTop: '12px', display: 'inline-block', backgroundColor: '#0284c7', color: '#fff', padding: '5px 14px', borderRadius: '14px', fontSize: '13px', fontWeight: 'bold' }}>
+                
+                {/* Yönetici rozeti */}
+                {isAdmin && (
+                  <div style={{ marginTop: '6px', display: 'inline-block', backgroundColor: '#fef3c7', color: '#b45309', padding: '3px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: 'bold' }}>
+                    👑 Sistem Yöneticisi
+                  </div>
+                )}
+
+                <div style={{ marginTop: '12px', display: 'block', backgroundColor: '#0284c7', color: '#fff', padding: '5px 14px', borderRadius: '14px', fontSize: '13px', fontWeight: 'bold' }}>
                   Toplam: {currentUser.points} Puan
                 </div>
               </div>
@@ -424,16 +430,20 @@ export default function App() {
                 >
                   🎁 Ödül Mağazası & Kuponlar
                 </button>
-                <button
-                  onClick={() => { 
-                    setActiveTab('admin'); 
-                    setIsDrawerOpen(false); 
-                    fetchSurveysFromCloud(); 
-                  }}
-                  style={{ textAlign: 'left', padding: '12px 16px', borderRadius: '12px', border: 'none', backgroundColor: activeTab === 'admin' ? '#fef3c7' : '#f8fafc', color: activeTab === 'admin' ? '#b45309' : '#334155', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer' }}
-                >
-                  📊 Marka & Yönetici Paneli
-                </button>
+
+                {/* Sadece Yönetici Girişi Yaptığında Görünen Buton */}
+                {isAdmin && (
+                  <button
+                    onClick={() => { 
+                      setActiveTab('admin'); 
+                      setIsDrawerOpen(false); 
+                      fetchSurveysFromCloud(); 
+                    }}
+                    style={{ textAlign: 'left', padding: '12px 16px', borderRadius: '12px', border: '1px solid #fde68a', backgroundColor: activeTab === 'admin' ? '#fef3c7' : '#fffbeb', color: '#b45309', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer' }}
+                  >
+                    📊 Marka & Yönetici Paneli
+                  </button>
+                )}
               </div>
             </div>
 
@@ -447,7 +457,7 @@ export default function App() {
         </div>
       )}
 
-      {/* Ayrı Sayfa / Modal Görev Ekranı */}
+      {/* Görev Ekranı Modalı */}
       {activeTaskCampaign && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 60, backgroundColor: '#091024', overflowY: 'auto', padding: '20px 16px 60px 16px' }}>
           <div style={{ maxWidth: '520px', margin: '0 auto' }}>
@@ -484,7 +494,7 @@ export default function App() {
                   {activeTaskCampaign.brand_name} Panosunu Fotoğraflayın
                 </h3>
                 <p style={{ fontSize: '13px', color: '#94a3b8', margin: '0 auto 24px auto', maxWidth: '320px', lineHeight: '1.5' }}>
-                  Fotoğrafı çekip doğrulamayı tamamladığınızda tüketici etki anketi açılacaktır.
+                  Doğrulama amacıyla açık hava panosunu çekin. Çekim tamamlandığında değerlendirme anketine yönlendirileceksiniz.
                 </p>
 
                 <label style={{ display: 'inline-block', backgroundColor: '#0284c7', color: '#fff', padding: '16px 36px', borderRadius: '14px', fontWeight: 'bold', cursor: 'pointer', fontSize: '16px', boxShadow: '0 6px 18px rgba(2,132,199,0.4)' }}>
@@ -593,7 +603,7 @@ export default function App() {
         </div>
       )}
 
-      {/* Ana Ekran */}
+      {/* Ana Liste */}
       <main style={{ maxWidth: '520px', margin: '0 auto', padding: '20px 16px' }}>
 
         {statusMessage && (
@@ -602,7 +612,7 @@ export default function App() {
           </div>
         )}
 
-        {/* 1. SEKME: Kampanyalar Listesi */}
+        {/* Kampanyalar */}
         {activeTab === 'campaigns' && (
           <div>
             <div style={{ marginBottom: '18px' }}>
@@ -648,7 +658,7 @@ export default function App() {
           </div>
         )}
 
-        {/* 2. SEKME: Ödüller */}
+        {/* Ödüller */}
         {activeTab === 'rewards' && (
           <div>
             <h2 style={{ fontSize: '19px', marginBottom: '14px', color: '#38bdf8' }}>Kullanılabilir Ödüller</h2>
@@ -664,8 +674,8 @@ export default function App() {
           </div>
         )}
 
-        {/* 3. SEKME: Marka & Yönetici Paneli (Supabase Verileri) */}
-        {activeTab === 'admin' && (
+        {/* Yönetici Paneli (Sadece kamileuyan.09@gmail.com için erişilebilir) */}
+        {activeTab === 'admin' && isAdmin && (
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <div>
@@ -680,7 +690,6 @@ export default function App() {
               </button>
             </div>
 
-            {/* Marka Filtresi */}
             <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '10px', marginBottom: '16px' }}>
               {['Tümü', 'Koton', 'Kurukahveci Mehmet Efendi', 'Getir', 'Trendyol', 'Apple'].map(brand => (
                 <button
@@ -703,12 +712,11 @@ export default function App() {
               ))}
             </div>
 
-            {/* Yanıtlar Listesi */}
             {loading ? (
               <div style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>Veriler buluttan yükleniyor...</div>
             ) : filteredSurveys.length === 0 ? (
               <div style={{ backgroundColor: '#1e293b', padding: '30px', borderRadius: '16px', textAlign: 'center', color: '#94a3b8', fontSize: '13px' }}>
-                Henüz bu markaya ait bir anket yanıtı girilmedi. Sahadan anket doldurulduğunda buraya anında yansıyacaktır.
+                Henüz bu markaya ait anket yanıtı bulunmuyor.
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
