@@ -106,7 +106,7 @@ export default function App() {
       points: 100 // İlk girişte hoş geldin puanı
     };
     setCurrentUser(userData);
-   setStatusMessage("Hoş geldin, " + userData.name + "!");
+   setStatusMessage("Hos geldiniz!");
   };
 
   const handleLogout = () => {
